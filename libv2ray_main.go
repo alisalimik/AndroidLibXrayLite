@@ -1,5 +1,7 @@
 package libv2ray
 
+import "C"
+
 import (
 	"context"
 	"errors"
@@ -54,6 +56,7 @@ type V2RayPoint struct {
 }
 
 /*V2RayVPNServiceSupportsSet To support Android VPN mode*/
+//export V2RayVPNServiceSupportsSet
 type V2RayVPNServiceSupportsSet interface {
 	Setup(Conf string) int
 	Prepare() int
@@ -64,6 +67,7 @@ type V2RayVPNServiceSupportsSet interface {
 
 /*RunLoop Run V2Ray main loop
  */
+//export RunLoop
 func (v *V2RayPoint) RunLoop(prefIPv6 bool) (err error) {
 	v.v2rayOP.Lock()
 	defer v.v2rayOP.Unlock()
@@ -105,6 +109,7 @@ func (v *V2RayPoint) RunLoop(prefIPv6 bool) (err error) {
 
 /*StopLoop Stop V2Ray main loop
  */
+ //export StopLoop
 func (v *V2RayPoint) StopLoop() (err error) {
 	v.v2rayOP.Lock()
 	defer v.v2rayOP.Unlock()
@@ -117,6 +122,7 @@ func (v *V2RayPoint) StopLoop() (err error) {
 }
 
 // Delegate Funcation
+ //export QueryStats
 func (v V2RayPoint) QueryStats(tag string, direct string) int64 {
 	if v.statsManager == nil {
 		return 0
@@ -127,14 +133,14 @@ func (v V2RayPoint) QueryStats(tag string, direct string) int64 {
 	}
 	return counter.Set(0)
 }
-
+//export shutdownInit
 func (v *V2RayPoint) shutdownInit() {
 	v.IsRunning = false
 	v.Vpoint.Close()
 	v.Vpoint = nil
 	v.statsManager = nil
 }
-
+//export pointloop
 func (v *V2RayPoint) pointloop() error {
 	log.Println("loading core config")
 	config, err := v2serial.LoadJSONConfig(strings.NewReader(v.ConfigureFileContent))
@@ -165,7 +171,7 @@ func (v *V2RayPoint) pointloop() error {
 	v.SupportSet.OnEmitStatus(0, "Running")
 	return nil
 }
-
+//export MeasureDelay
 func (v *V2RayPoint) MeasureDelay(url string) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
 
@@ -182,6 +188,7 @@ func (v *V2RayPoint) MeasureDelay(url string) (int64, error) {
 }
 
 // InitV2Env set v2 asset path
+//export InitV2Env
 func InitV2Env(envPath string, key string) {
 	//Initialize asset API, Since Raymond Will not let notify the asset location inside Process,
 	//We need to set location outside V2Ray
@@ -201,7 +208,7 @@ func InitV2Env(envPath string, key string) {
 		return os.Open(path)
 	}
 }
-
+//export MeasureOutboundDelay
 func MeasureOutboundDelay(ConfigureFileContent string, url string) (int64, error) {
 	config, err := v2serial.LoadJSONConfig(strings.NewReader(ConfigureFileContent))
 	if err != nil {
@@ -226,6 +233,7 @@ func MeasureOutboundDelay(ConfigureFileContent string, url string) (int64, error
 }
 
 /*NewV2RayPoint new V2RayPoint*/
+//export NewV2RayPoint
 func NewV2RayPoint(s V2RayVPNServiceSupportsSet, adns bool) *V2RayPoint {
 	// inject our own log writer
 	v2applog.RegisterHandlerCreator(v2applog.LogType_Console,
@@ -247,11 +255,12 @@ func NewV2RayPoint(s V2RayVPNServiceSupportsSet, adns bool) *V2RayPoint {
 CheckVersionX string
 This func will return libv2ray binding version and V2Ray version used.
 */
+//export CheckVersionX
 func CheckVersionX() string {
 	var version = 27
 	return fmt.Sprintf("Lib v%d, Xray-core v%s", version, v2core.Version())
 }
-
+//export measureInstDelay
 func measureInstDelay(ctx context.Context, inst *v2core.Instance, url string) (int64, error) {
 	if inst == nil {
 		return -1, errors.New("core instance nil")
@@ -293,20 +302,22 @@ func measureInstDelay(ctx context.Context, inst *v2core.Instance, url string) (i
 
 // This struct creates our own log writer without datatime stamp
 // As Android adds time stamps on each line
+//export consoleLogWriter
 type consoleLogWriter struct {
 	logger *log.Logger
 }
-
+//export Write
 func (w *consoleLogWriter) Write(s string) error {
 	w.logger.Print(s)
 	return nil
 }
-
+//export Close
 func (w *consoleLogWriter) Close() error {
 	return nil
 }
 
 // This logger won't print data/time stamps
+//export createStdoutLogWriter
 func createStdoutLogWriter() v2commlog.WriterCreator {
 	return func() v2commlog.Writer {
 		return &consoleLogWriter{
